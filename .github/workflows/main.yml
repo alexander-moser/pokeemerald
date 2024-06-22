@@ -1,0 +1,37 @@
+name: PR Conventional Commit Validation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+jobs:
+  validate-pr-title:
+    runs-on: ubuntu-latest
+    steps:
+      - name: PR Conventional Commit Validation
+        uses:  ytanikin/PRConventionalCommits@1.1.0
+        with:
+          task_types: '["feat","fix","docs","test","ci","refactor","perf","chore","revert"]'
+          add_label: 'false'
+          
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    # Only run one job a time to avoid conflicts
+    concurrency: ci-${{ github.ref }}
+    # This permission may be required to grant access for the Action to push tags
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Increment version
+        id: increment-version
+        uses: RichardInnocent/semantic-versioning-git@v0.0.1
+
+      # Everything below here shows how you might use the results of the action...
+      - name: Print if version changed
+        if: steps.increment-version.outputs.previous-version != steps.increment-version.outputs.new-version
+        run: echo "The new version is now $new_version"
+        env:
+          new_version: ${{ steps.increment-version.outputs.new-version }}
